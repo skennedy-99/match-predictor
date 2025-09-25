@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../_lib/supabase';
+import { getDb } from '../_lib/supabase';
 import { sendJson, methodGuard } from '../_lib/http';
 import { ENV } from '../_lib/env';
 
@@ -37,6 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       is_manchester_united_home: m.homeTeam.name === 'Manchester United'
     }));
 
+    const db = getDb();
     const { error } = await db.from('fixtures').upsert(upserts, { onConflict: 'id' });
     if (error) return sendJson(res, 500, { error: error.message });
     sendJson(res, 200, { count: upserts.length });

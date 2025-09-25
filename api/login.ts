@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from './_lib/supabase';
+import { getDb } from './_lib/supabase';
 import { readJsonBody, sendJson, methodGuard } from './_lib/http';
 import { ENV } from './_lib/env';
 import { signSession } from './_lib/jwt';
@@ -15,13 +15,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return sendJson(res, 401, { error: 'Invalid code' });
   }
 
-  const { data: user, error } = await db.from('users').select('id, name').eq('name', name).maybeSingle();
-  if (error) return sendJson(res, 500, { error: error.message });
-  if (!user) return sendJson(res, 404, { error: 'User not found' });
-
-  const token = await signSession({ userId: user.id, name: user.name, ver: 1 });
-  setCookie(res, SESSION_COOKIE, token, { maxAge: 60 * 60 * 24 * 7 });
-  sendJson(res, 200, { ok: true });
+  try {
+    const db = getDb();
+    const { data: user, error } = await db.from('users').select('id, name').eq('name', name).maybeSingle();
+    if (error) return sendJson(res, 500, { error: error.message });
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const token = await signSession({ userId: user.id, name: user.name, ver: 1 });
+    setCookie(res, SESSION_COOKIE, token, { maxAge: 60 * 60 * 24 * 7 });
+    sendJson(res, 200, { ok: true });
+  } catch (e: any) {
+    return sendJson(res, 500, { error: e?.message || 'Server error' });
+  }
 }
 
 
