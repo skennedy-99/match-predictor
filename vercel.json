@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/fixtures/sync", "schedule": "0 4 * * *" }
+  ]
+}
+
+
