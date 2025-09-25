@@ -32,11 +32,17 @@ const submitting = ref(false);
 const error = ref('');
 
 onMounted(async () => {
-  names.value = await fetchUserNames();
-  const session = await getSession();
-  if (session?.userId) {
-    router.replace('/predict');
+  try {
+    names.value = await fetchUserNames();
+  } catch (e: any) {
+    error.value = e?.message || 'Could not load user names';
   }
+  try {
+    const session = await getSession();
+    if (session?.userId) {
+      router.replace('/predict');
+    }
+  } catch {}
 });
 
 async function onSubmit() {
