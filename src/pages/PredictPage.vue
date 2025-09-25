@@ -11,9 +11,9 @@
           <div v-if="f.home_goals != null && f.away_goals != null" class="score">Final: {{ f.home_goals }}-{{ f.away_goals }}</div>
         </div>
         <form class="pred" @submit.prevent="savePrediction(f.id)">
-          <input type="number" min="0" v-model.number="predictions[f.id]?.pred_home_goals" :disabled="isLocked(f)" />
+          <input type="number" min="0" v-model.number="predictions[f.id].pred_home_goals" :disabled="isLocked(f)" />
           <span>-</span>
-          <input type="number" min="0" v-model.number="predictions[f.id]?.pred_away_goals" :disabled="isLocked(f)" />
+          <input type="number" min="0" v-model.number="predictions[f.id].pred_away_goals" :disabled="isLocked(f)" />
           <button :disabled="isLocked(f)">Save</button>
           <span class="points" v-if="pointsMap[f.id] != null">{{ pointsMap[f.id] }} pts</span>
         </form>
@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { getSession, listFixtures, getPredictions, upsertPrediction, logout } from '../shared/apiClient';
+import { getSession, listFixtures, getPredictions, upsertPrediction } from '../shared/apiClient';
 import { computePoints } from '../shared/points';
 
 type Fixture = {
@@ -43,6 +43,7 @@ const loading = ref(true);
 const fixtures = ref<Fixture[]>([]);
 const predictions = reactive<Record<string, { pred_home_goals: number; pred_away_goals: number }>>({});
 const pointsMap = reactive<Record<string, number>>({});
+const userPredicted = new Set<string>();
 
 onMounted(async () => {
   const session = await getSession();
@@ -54,10 +55,14 @@ onMounted(async () => {
   fixtures.value = fx;
   preds.forEach(p => {
     predictions[p.fixture_id] = { pred_home_goals: p.pred_home_goals, pred_away_goals: p.pred_away_goals };
+    userPredicted.add(p.fixture_id);
   });
   fixtures.value.forEach(f => {
+    if (!predictions[f.id]) {
+      predictions[f.id] = { pred_home_goals: 0, pred_away_goals: 0 };
+    }
     const p = predictions[f.id];
-    if (p && f.home_goals != null && f.away_goals != null) {
+    if (userPredicted.has(f.id) && f.home_goals != null && f.away_goals != null) {
       pointsMap[f.id] = computePoints(p.pred_home_goals, p.pred_away_goals, f.home_goals, f.away_goals);
     }
   });
